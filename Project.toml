@@ -1,0 +1,13 @@
+name = "ValuationInputs"
+uuid = "6a964a4a-579a-4924-84e4-b5c869a79900"
+authors = ["breusens <brent.reusens@gmail.com> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
