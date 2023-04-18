@@ -1,7 +1,11 @@
-name = "ValuationInputs"
+name = "PricingInputs"
 uuid = "6a964a4a-579a-4924-84e4-b5c869a79900"
 authors = ["breusens <brent.reusens@gmail.com> and contributors"]
 version = "0.1.0"
+[deps]
+Derivatives = "28531788-b187-4010-a899-5d1f00afbd7f"
+
+Statistics="10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 julia = "1"

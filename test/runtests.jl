@@ -1,4 +1,4 @@
-using ValuationInputs
+using PricingInputs
 using Test
 
 @testset "ValuationInputs.jl" begin
