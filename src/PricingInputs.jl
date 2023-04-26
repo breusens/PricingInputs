@@ -4,6 +4,7 @@ export printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Spl
 import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex
 import Statistics: mean
 using Derivatives
+using Statistics
 
 struct ValuationInputs{T1,T2}
     t::T1
