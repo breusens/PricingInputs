@@ -8,7 +8,7 @@ using Statistics
 using MatrixFunctions
 
 
-FloatType=Float64
+using FloatingNumberType
 
 struct ValuationInputs{T1,T2}
     t::T1

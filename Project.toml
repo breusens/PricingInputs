@@ -4,7 +4,7 @@ authors = ["breusens <brent.reusens@gmail.com> and contributors"]
 version = "0.1.0"
 [deps]
 Derivatives = "28531788-b187-4010-a899-5d1f00afbd7f"
-
+FloatingNumberType= "78f-9910-47f1-b06a-0d0e509a4feb"
 Statistics="10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 MatrixFunctions="2696bb4c-b495-49e1-a13d-55dba26b836f"
 [compat]
