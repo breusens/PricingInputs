@@ -1,10 +1,14 @@
 module PricingInputs
-export printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable
+export printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize
 # Write your package code here.
 import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex
 import Statistics: mean
 using Derivatives
 using Statistics
+using MatrixFunctions
+
+
+FloatType=Float64
 
 struct ValuationInputs{T1,T2}
     t::T1
@@ -26,10 +30,15 @@ struct MarketInputs{T1,T2}
     Observations::T2
 end
 
+function MatchSize(k,t::TradeInputs)
+    TradeState=repeat(t.TradeState,1,1,k)
+    return TradeInputs(t.Maturity,TradeState,t.TradeParameters)
+end
+
 struct TDVariable
-    ExpectedObservations::Array{Float32}
-    Funding::Array{Float32}
-    Pay::Array{Float32}
+    ExpectedObservations::Array{FloatType}
+    Funding::Array{FloatType}
+    Pay::Array{FloatType}
 end
 
 
@@ -54,14 +63,14 @@ end
 
 
 
-function ValuationInputs(t::Array{Float32},Observations::Array{Float32},trade::TradeInputs)
+function ValuationInputs(t::Array{FloatType},Observations::Array{FloatType},trade::TradeInputs)
     Maturity=trade.Maturity
     TradeState=trade.TradeState
     TradeParameters=trade.TradeParameters
     return ValuationInputs(t,Maturity,Observations,TradeState,TradeParameters)
 end
 
-function ValuationInputs(t::Array{Float32},Observations::Dual,trade::TradeInputs)
+function ValuationInputs(t::Array{FloatType},Observations::Dual,trade::TradeInputs)
     Maturity=Dual(trade.Maturity,Observations.id)
     TradeState=Dual(trade.TradeState,Observations.id)
     TradeParameters=Dual(trade.TradeParameters,Observations.id)
@@ -138,23 +147,6 @@ function printsize(x::ValuationInputs)
     println(size(x.TradeParameters))
 end
 
-function *(A::Matrix{Float32},B::Array{Float32,3})
-s1,s2,s3=size(B)
-D=reshape(B,s1,s2*s3)
-E=A*D
-u1,u2=size(E)
-C=reshape(E,u1,s2,s3)t(Vauatio)
-    return C
-end
-
-function *(A::Matrix,B::Array{Float32,3})
-    s1,s2,s3=size(B)
-    D=reshape(B,s1,s2*s3)
-    E=A*D
-    u1,u2=size(E)
-    C=reshape(E,u1,s2,s3)
-        return C
-end
 
 function +(A::ValuationInputs,B::ValuationInputs)
     return ValuationInputs(A.t+B.t,A.Maturity+B.Maturity,A.Observations+B.Observations,A.TradeState+B.TradeState,A.TradeParameters+B.TradeParameters)
@@ -183,7 +175,7 @@ end
 function *(A::ValuationInputs,B::ValuationInputs)
     return ValuationInputs(A.t.*B.t,A.Maturity.*B.Maturity,A.Observations.*B.Observations,A.TradeState.*B.TradeState,A.TradeParameters.*B.TradeParameters)
 end
-function *(A::Float32,B::ValuationInputs)
+function *(A::FloatType,B::ValuationInputs)
     return ValuationInputs(A.*B.t,A.*B.Maturity,A.*B.Observations,A.*B.TradeState,A.*B.TradeParameters)
 end
 
