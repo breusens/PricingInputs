@@ -2,6 +2,7 @@ module PricingInputs
 export printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize
 # Write your package code here.
 import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex
+import StochasticRounding: Float32sr
 import Statistics: mean
 using Derivatives
 using Statistics
@@ -10,14 +11,17 @@ using MatrixFunctions
 
 using FloatingNumberType
 
-struct ValuationInputs{T1,T2}
+struct ValuationInputs{T1,T2,T3}
     t::T1
     Maturity::T1
-    Observations::T2
+    Observations::T3
     TradeState::T2
     TradeParameters::T1
 end
 
+function Float32sr(x::ValuationInputs)
+    return ValuationInputs(Float32sr.(x.t),Float32sr.(x.Maturity),Float32sr.(x.Observations),Float32sr.(x.TradeState),Float32sr.(x.TradeParameters))
+end
 
 struct TradeInputs{T1,T2}
     Maturity::T1
@@ -75,6 +79,13 @@ function ValuationInputs(t::Array{FloatType},Observations::Dual,trade::TradeInpu
     TradeState=Dual(trade.TradeState,Observations.id)
     TradeParameters=Dual(trade.TradeParameters,Observations.id)
     return ValuationInputs(Dual(t,Observations.id),Maturity,Observations,TradeState,TradeParameters)
+end
+
+function ValuationInputs(t::Array{FloatType},Observations,trade::TradeInputs)
+    Maturity=trade.Maturity
+    TradeState=trade.TradeState
+    TradeParameters=trade.TradeParameters
+    return ValuationInputs(t,Maturity,Observations,TradeState,TradeParameters)
 end
 
 function ValuationInputs(market::MarketInputs,trade::TradeInputs)
