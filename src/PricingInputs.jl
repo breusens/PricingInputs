@@ -1,7 +1,7 @@
 module PricingInputs
 export printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize
 # Write your package code here.
-import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex
+import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex, Float32
 import StochasticRounding: Float32sr
 import Statistics: mean
 using Derivatives
@@ -22,6 +22,15 @@ end
 function Float32sr(x::ValuationInputs)
     return ValuationInputs(Float32sr.(x.t),Float32sr.(x.Maturity),Float32sr.(x.Observations),Float32sr.(x.TradeState),Float32sr.(x.TradeParameters))
 end
+
+function Float32(x::ValuationInputs)
+    return ValuationInputs(Float32.(x.t),Float32.(x.Maturity),Float32.(x.Observations),Float32.(x.TradeState),Float32.(x.TradeParameters))
+end
+
+function Float64(x::ValuationInputs)
+    return ValuationInputs(Float64.(x.t),Float64.(x.Maturity),Float64.(x.Observations),Float64.(x.TradeState),Float64.(x.TradeParameters))
+end
+
 
 struct TradeInputs{T1,T2}
     Maturity::T1
@@ -164,7 +173,7 @@ function +(A::ValuationInputs,B::ValuationInputs)
 end
 
 function -(A::ValuationInputs,B::ValuationInputs)
-    return ValuationInputs(A.t-B.t,A.Maturity-B.Maturity,A.Observations-B.Observations,A.TradeState-B.TradeState,A.TradeParameters-B.TradeParameters)
+    return ValuationInputs(A.t.-B.t,A.Maturity.-B.Maturity,A.Observations.-B.Observations,A.TradeState.-B.TradeState,A.TradeParameters.-B.TradeParameters)
 end
 
 function ^(A::ValuationInputs,k)
