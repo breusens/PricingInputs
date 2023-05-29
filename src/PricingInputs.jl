@@ -19,6 +19,7 @@ struct ValuationInputs{T1,T2,T3}
     TradeParameters::T1
 end
 
+
 function Float32sr(x::ValuationInputs)
     return ValuationInputs(Float32sr.(x.t),Float32sr.(x.Maturity),Float32sr.(x.Observations),Float32sr.(x.TradeState),Float32sr.(x.TradeParameters))
 end
