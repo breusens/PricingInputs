@@ -1,5 +1,5 @@
 module PricingInputs
-export printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize
+export printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize,Serialise
 # Write your package code here.
 import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex, Float32
 import StochasticRounding: Float32sr
@@ -19,6 +19,16 @@ struct ValuationInputs{T1,T2,T3}
     TradeParameters::T1
 end
 
+function Serialise(x::ValuationInputs)
+    s1,s2,s3=size(x.Observations)
+    t=repeat(x.t,1,s3)
+    Maturity=repeat(x.Maturity,1,s3)
+    Observations=reshape(x.Observations,s1,s2*s3)
+    s1,s2,s3=size(x.TradeState)
+    TradeState=reshape(x.TradeState,s1,s2*s3)
+    TradeParameters=repeat(x.TradeParameters,1,s3)
+    return ValuationInputs(t,Maturity,Observations,TradeState,TradeParameters)
+end
 
 function Float32sr(x::ValuationInputs)
     return ValuationInputs(Float32sr.(x.t),Float32sr.(x.Maturity),Float32sr.(x.Observations),Float32sr.(x.TradeState),Float32sr.(x.TradeParameters))
