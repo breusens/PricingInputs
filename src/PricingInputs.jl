@@ -200,7 +200,7 @@ function /(A::ValuationInputs,N)
 end
 
 function /(A::ValuationInputs,B::ValuationInputs)
-    return ValuationInputs(EWD(A.t,B.t),EWD(A.Maturity,B.Maturity),EWD(A.Observations,B.Observations),EWD(A.TradeState,B.TradeState),EWD(A.TradeParameters,B.TradeParameters))
+    return ValuationInputs(A.t./B.t,A.Maturity./B.Maturity,A.Observations./B.Observations,A.TradeState./B.TradeState,A.TradeParameters./B.TradeParameters)
 end
 
 function *(A::ValuationInputs,B::ValuationInputs)
