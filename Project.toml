@@ -8,6 +8,8 @@ FloatingNumberType= "8dba378f-9910-47f1-b06a-0d0e509a4feb"
 Statistics="10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 MatrixFunctions="2696bb4c-b495-49e1-a13d-55dba26b836f"
 StochasticRounding="3843c9a1-1f18-49ff-9d99-1b4c8a8e97ed"
+VectorStoredArray = "619dcd67-d1cf-444f-8762-d8c7e6d56cc5"
+
 [compat]
 julia = "1"
 

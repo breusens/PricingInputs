@@ -1,5 +1,5 @@
 module PricingInputs
-export printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize,Serialise
+export Matrices,DataPointers, printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize,Serialise
 # Write your package code here.
 import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex, Float32
 import StochasticRounding: Float32sr
@@ -7,9 +7,26 @@ import Statistics: mean
 using Derivatives
 using Statistics
 using MatrixFunctions
+using VectorStoredArray
 
 
 using FloatingNumberType
+
+struct Matrices{N}
+    State::Array{SimType,N}
+    Observations::Array{SimType,N}
+    TradeParams::Array{SimType,2}
+    TradeState::Array{SimType,N}
+    ExpectedObservations::Array{SimType,2}
+end
+
+struct DataPointers
+    State::Storage
+    Observations::Storage
+    TradeParams::Storage
+    TradeState::Storage
+    ExpectedObservations::Storage
+end
 
 struct ValuationInputs{T1,T2,T3}
     t::T1
@@ -200,7 +217,7 @@ function /(A::ValuationInputs,N)
 end
 
 function /(A::ValuationInputs,B::ValuationInputs)
-    return ValuationInputs(EWD(A.t,B.t),EWD(A.Maturity,B.Maturity),EWD(A.Observations,B.Observations),EWD(A.TradeState,B.TradeState),EWD(A.TradeParameters,B.TradeParameters))
+    return ValuationInputs(A.t./B.t,A.Maturity./B.Maturity,A.Observations./B.Observations,A.TradeState./B.TradeState,A.TradeParameters./B.TradeParameters)
 end
 
 function *(A::ValuationInputs,B::ValuationInputs)
