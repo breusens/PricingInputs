@@ -36,20 +36,60 @@ struct ValuationInputs{T1,T2,T3}
     TradeParameters::T1
 end
 
+struct TDVariable
+    ExpectedObservations::Array{FloatType}
+    Funding::Array{FloatType}
+    Pay::Array{FloatType}
+end
+
+
 function Decimate(x::ValuationInputs)
-    t=x.t[:,1:5]
-    Maturity=x.Maturity[:,1:5]
-    TradeParameters=x.TradeParameters[:,1:5]
-    s=size(x.Observations)
+    s=size(x.Observations)    
     if length(s)>2
-        Observations=x.Observations[:,1:5,1:2]
-        TradeState=x.TradeState[:,1:5,1:2]
+    (sa,p,b)=size(x.Observations)
+    i2=rand(1:b,2)
     else
-        Observations=x.Observations[:,1:5]
-        TradeState=x.TradeState[:,1:5]
+    (sa,p)=size(x.Observations)
+    end
+    i1=rand(1:p,5)
+    t=x.t[:,i1]
+    Maturity=x.Maturity[:,i1]
+    TradeParameters=x.TradeParameters[:,i1]
+    if length(s)>2
+        Observations=x.Observations[:,i1,i2]
+        TradeState=x.TradeState[:,i1,i2]
+    else
+        Observations=x.Observations[:,i1]
+        TradeState=x.TradeState[:,i1]
     end
     return ValuationInputs(t,Maturity,Observations,TradeState,TradeParameters)
 end
+
+function Decimate(input0::ValuationInputs,input1::ValuationInputs, Extra::TDVariable,Maturity0::Array{FloatType},Maturity1::Array{FloatType},HedgePay)
+    (s,p,b)=size(input1.Observations)
+    i1=rand(1:p,5)
+    i2=rand(1:b,2)
+    t=input1.t[:,i1]
+    Maturity=input1.Maturity[:,i1]
+    TradeParameters=input1.TradeParameters[:,i1]
+    Observations=input1.Observations[:,i1,i2]
+    TradeState=input1.TradeState[:,i1,i2]
+    I1=ValuationInputs(t,Maturity,Observations,TradeState,TradeParameters)
+    t=input0.t[:,i1]
+    Maturity=input0.Maturity[:,i1]
+    TradeParameters=input0.TradeParameters[:,i1]
+    Observations=input0.Observations[:,i1]
+    TradeState=input0.TradeState[:,i1]
+    I0=ValuationInputs(t,Maturity,Observations,TradeState,TradeParameters)
+    ExpectedObservations=Extra.ExpectedObservations[:,i1]
+    Funding=Extra.Funding[:,i1]
+    Pay=Extra.Pay[:,i1,i2]
+    M0=Maturity0[:,i1]
+    M1=Maturity1[:,i1]
+    HP=HedgePay[:,i1,i2]
+    return I0,I1,TDVariable(ExpectedObservations,Funding,Pay),M0,M1,HP
+end
+
 
 function Serialise(x::ValuationInputs)
     s1,s2,s3=size(x.Observations)
@@ -89,12 +129,6 @@ end
 function MatchSize(k,t::TradeInputs)
     TradeState=repeat(t.TradeState,1,1,k)
     return TradeInputs(t.Maturity,TradeState,t.TradeParameters)
-end
-
-struct TDVariable
-    ExpectedObservations::Array{FloatType}
-    Funding::Array{FloatType}
-    Pay::Array{FloatType}
 end
 
 
