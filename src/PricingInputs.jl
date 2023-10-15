@@ -1,45 +1,138 @@
 module PricingInputs
-export Decimate,Matrices,DataPointers, printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize,Serialise
+export Value,saveV, loadV, InputPrint,printsize, InputHeaders, Decimate,Matrices,DataPointers, printsize,printinput,findNan,ValuationInputs,MarketInputs,TradeInputs,Split,Mean,TDVariable,MatchSize,Serialise
 # Write your package code here.
-import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex, Float32
-import StochasticRounding: Float32sr
+import Base: *,+,-,^,/,sqrt,sign,abs,max,min,getindex, Float32, reshape
 import Statistics: mean
-using Derivatives
 using Statistics
 using MatrixFunctions
-using VectorStoredArray
-
-
+using Batcher
+using UpdateMarketandTrade
 using FloatingNumberType
+using MarketData
+using Instruments
+using JLD2
+using FileIO
+using PrettyTables
+using FloatTracker
 
-struct Matrices{N}
-    State::Array{SimType,N}
-    Observations::Array{SimType,N}
-    TradeParams::Array{SimType,2}
-    TradeState::Array{SimType,N}
-    ExpectedObservations::Array{SimType,2}
-end
 
-struct DataPointers
-    State::Storage
-    Observations::Storage
-    TradeParams::Storage
-    TradeState::Storage
-    ExpectedObservations::Storage
-end
-
-struct ValuationInputs{T1,T2,T3}
+struct ValuationInputs{T1,T2,T3,T4,T5,T6}
     t::T1
-    Maturity::T1
+    Maturity::T2
     Observations::T3
-    TradeState::T2
-    TradeParameters::T1
+    TradeState::T4
+    TradeParameters::T5
+    Accrual::T6
+end
+
+function printsize(x::ValuationInputs)
+    println("t:",size(x.t))
+    println("Maturity:",size(x.Maturity))
+    println("Observations:",size(x.Observations))
+    println("TradeState:",size(x.TradeState))
+    println("TradeParameters:",size(x.TradeParameters))
+    println("Accrual:",size(x.Accrual))
+end
+
+function reshape(x::ValuationInputs,s::Tuple)
+    FO=size(x.Observations)[1]
+    FS=size(x.TradeState)[1]
+    O=reshape(x.Observations,FO,s...)
+    TS=reshape(x.TradeState,FS,s...)
+    return ValuationInputs(x.t,x.Maturity,O,TS,x.TradeParameters,x.Accrual)
+end
+
+function abs(x::ValuationInputs)
+    t=abs.(x.t)
+    Maturity=abs.(x.Maturity)
+    Observations=abs.(x.Observations)
+    TradeState=abs.(x.TradeState)
+    TradeParameters=abs.(x.TradeParameters)
+    Accrual=abs.(x.Accrual)
+    return ValuationInputs(t,Maturity,Observations,TradeState,TradeParameters,Accrual)
+end
+
+function Value(x::ValuationInputs)
+    println(any(isnan.(Value.(x.t))))
+    println(any(isnan.(Value.(x.Maturity))))
+    println(any(isnan.(Value.(x.Observations))))
+    println(any(isnan.(Value.(x.TradeParameters))))
+end
+
+function Value(x::TrackedFloat32)
+    return x.val
+end
+
+struct InputHeaders
+    Observations::Vector{String}
+    TradeState::Vector{String}
+    TradeParameters::Vector{String}
+    Accrual::Vector{String}
+end
+
+function TP(data::Array,Headers::Vector)
+d=hcat(Headers,data)
+Hders=(["Field","Value"])
+pretty_table(d;backend  = Val(:latex),header=Hders)
+return Nothing
+end
+
+function InputPrint(x::ValuationInputs,y::InputHeaders)
+    println("t1:",x.t)
+    println("Maturity:",x.Maturity)
+    println("Observations")
+    TP(x.Observations,y.Observations)
+    println("TradeState")
+    TP(x.TradeState,y.TradeState)
+    println("TradeParameters")
+    TP(x.TradeParameters,y.TradeParameters)
+    println("Accrual")
+    TP(x.Accrual,y.Accrual)
+end
+
+function saveV(V::ValuationInputs,filename::String)
+    save(filename,"V",V)
+end
+
+function loadV(filename::String)
+    return load(filename,"V")
+end
+
+
+function ValuationInputs(t::Batched,x::DataStore)
+    Maturity=GetMaturity(t,x.TradeState,x.TradeParams)
+    Mc=Join(Maturity,FloatType)
+    i=Mc(Maturity)
+    Oc=Join(x.Observations,FloatType)
+    i=Oc(x.Observations)
+    TSc=Join(x.TradeState,FloatType)
+    i=TSc(x.TradeState)
+    TPc=Join(x.TradeParams,FloatType)
+    i=TPc(x.TradeParams)
+    Pc=Join(x.Periods,FloatType)
+    i=Pc(x.Periods)
+    l=length(t.D)
+    return ValuationInputs(FloatType.(reshape(t.D,(1,l))),Mc.A,Oc.A,TSc.A,TPc.A,Pc.A)
+end
+
+function InputHeaders(x::DataStore)
+    Observations=Headers(x.Observations)
+    TradeState=Headers(x.TradeState)
+    TradeParameters=Headers(x.TradeParams)
+    Accrual=Headers(x.Periods)
+    return InputHeaders(Observations,TradeState,TradeParameters,Accrual)
 end
 
 struct TDVariable
     ExpectedObservations::Array{FloatType}
     Funding::Array{FloatType}
     Pay::Array{FloatType}
+end
+
+function TDVariable(ExpectedObservations::Observations,Funding::Array{FloatType},Pay::Array{FloatType})
+    EO=Collector(ExpectedObservations,FloatType)
+    i=EO(ExpectedObservations)
+    return TDVariable(EO.A,FloatType.(Funding),FloatType.(Pay))
 end
 
 
@@ -103,15 +196,15 @@ function Serialise(x::ValuationInputs)
 end
 
 function Float32sr(x::ValuationInputs)
-    return ValuationInputs(Float32sr.(x.t),Float32sr.(x.Maturity),Float32sr.(x.Observations),Float32sr.(x.TradeState),Float32sr.(x.TradeParameters))
+    return ValuationInputs(Float32sr.(x.t),Float32sr.(x.Maturity),Float32sr.(x.Observations),Float32sr.(x.TradeState),Float32sr.(x.TradeParameters),Float32sr.(x.Accrual))
 end
 
 function Float32(x::ValuationInputs)
-    return ValuationInputs(Float32.(x.t),Float32.(x.Maturity),Float32.(x.Observations),Float32.(x.TradeState),Float32.(x.TradeParameters))
+    return ValuationInputs(Float32.(x.t),Float32.(x.Maturity),Float32.(x.Observations),Float32.(x.TradeState),Float32.(x.TradeParameters),Float32.(x.Accrual))
 end
 
 function Float64(x::ValuationInputs)
-    return ValuationInputs(Float64.(x.t),Float64.(x.Maturity),Float64.(x.Observations),Float64.(x.TradeState),Float64.(x.TradeParameters))
+    return ValuationInputs(Float64.(x.t),Float64.(x.Maturity),Float64.(x.Observations),Float64.(x.TradeState),Float64.(x.TradeParameters),Float64.(x.Accrual))
 end
 
 
@@ -160,12 +253,7 @@ function ValuationInputs(t::Array{FloatType},Observations::Array{FloatType},trad
     return ValuationInputs(t,Maturity,Observations,TradeState,TradeParameters)
 end
 
-function ValuationInputs(t::Array{FloatType},Observations::Dual,trade::TradeInputs)
-    Maturity=Dual(trade.Maturity,Observations.id)
-    TradeState=Dual(trade.TradeState,Observations.id)
-    TradeParameters=Dual(trade.TradeParameters,Observations.id)
-    return ValuationInputs(Dual(t,Observations.id),Maturity,Observations,TradeState,TradeParameters)
-end
+
 
 function ValuationInputs(t::Array{FloatType},Observations,trade::TradeInputs)
     Maturity=trade.Maturity
@@ -236,55 +324,48 @@ function findNan(x::ValuationInputs)
 
 end
 
-function printsize(x::ValuationInputs)
-    println("ValuationInputSize")
-    println(size(x.Maturity))
-    println(size(x.Observations))
-    println(size(x.TradeState))
-    println(size(x.TradeParameters))
-end
 
 
 function +(A::ValuationInputs,B::ValuationInputs)
-    return ValuationInputs(A.t+B.t,A.Maturity+B.Maturity,A.Observations+B.Observations,A.TradeState+B.TradeState,A.TradeParameters+B.TradeParameters)
+    return ValuationInputs(A.t+B.t,A.Maturity+B.Maturity,A.Observations+B.Observations,A.TradeState+B.TradeState,A.TradeParameters+B.TradeParameters,A.Accrual+B.Accrual)
 end
 
 function -(A::ValuationInputs,B::ValuationInputs)
-    return ValuationInputs(A.t.-B.t,A.Maturity.-B.Maturity,A.Observations.-B.Observations,A.TradeState.-B.TradeState,A.TradeParameters.-B.TradeParameters)
+    return ValuationInputs(A.t.-B.t,A.Maturity.-B.Maturity,A.Observations.-B.Observations,A.TradeState.-B.TradeState,A.TradeParameters.-B.TradeParameters,A.Accrual-B.Accrual)
 end
 
 function ^(A::ValuationInputs,k)
-    if isa(A.t,Dual)
-    return ValuationInputs(A.t^k,A.Maturity^k,A.Observations^k,A.TradeState^k,A.TradeParameters^k)
-    else
-    return ValuationInputs(A.t.^k,A.Maturity.^k,A.Observations.^k,A.TradeState.^k,A.TradeParameters.^k)  
-    end
+    ValuationInputs(A.t.^k,A.Maturity.^k,A.Observations.^k,A.TradeState.^k,A.TradeParameters.^k,A.Accrual.^k)  
 end
 
 function /(A::ValuationInputs,N)
-    return ValuationInputs(A.t./N,A.Maturity./N,A.Observations./N,A.TradeState./N,A.TradeParameters./N)
+    return ValuationInputs(A.t./N,A.Maturity./N,A.Observations./N,A.TradeState./N,A.TradeParameters./N,A.Accrual/N)
 end
 
 function /(A::ValuationInputs,B::ValuationInputs)
-    return ValuationInputs(A.t./B.t,A.Maturity./B.Maturity,A.Observations./B.Observations,A.TradeState./B.TradeState,A.TradeParameters./B.TradeParameters)
+    return ValuationInputs(A.t./B.t,A.Maturity./B.Maturity,A.Observations./B.Observations,A.TradeState./B.TradeState,A.TradeParameters./B.TradeParameters,A.Accrual./B.Accrual)
 end
 
 function *(A::ValuationInputs,B::ValuationInputs)
-    return ValuationInputs(A.t.*B.t,A.Maturity.*B.Maturity,A.Observations.*B.Observations,A.TradeState.*B.TradeState,A.TradeParameters.*B.TradeParameters)
+    return ValuationInputs(A.t.*B.t,A.Maturity.*B.Maturity,A.Observations.*B.Observations,A.TradeState.*B.TradeState,A.TradeParameters.*B.TradeParameters,A.Accrual.*B.Accrual)
 end
 function *(A::FloatType,B::ValuationInputs)
-    return ValuationInputs(A.*B.t,A.*B.Maturity,A.*B.Observations,A.*B.TradeState,A.*B.TradeParameters)
+    return ValuationInputs(A.*B.t,A.*B.Maturity,A.*B.Observations,A.*B.TradeState,A.*B.TradeParameters,A.*B.Accrual)
 end
 
 function sign(A::ValuationInputs)
-    return ValuationInputs(sign.(A.t),sign.(A.Maturity),sign.(A.Observations),sign.(A.TradeState),sign.(A.TradeParameters))
+    return ValuationInputs(sign.(A.t),sign.(A.Maturity),sign.(A.Observations),sign.(A.TradeState),sign.(A.TradeParameters),sign.(A.Accrual))
 end
 
 function sqrt(A::ValuationInputs)
-    return ValuationInputs(sqrt.(A.t),sqrt.(A.Maturity),sqrt.(A.Observations),sqrt.(A.TradeState),sqrt.(A.TradeParameters))
+    return ValuationInputs(sqrt.(A.t),sqrt.(A.Maturity),sqrt.(A.Observations),sqrt.(A.TradeState),sqrt.(A.TradeParameters),sqrt.(A.Accrual))
+end
+
+function lmean(x::Array)
+    return Statistics.mean(x,dims=ndims(x))
 end
 
 function mean(A::ValuationInputs)
-    return ValuationInputs(Statistics.mean(A.t,dims=2),Statistics.mean(A.Maturity,dims=2),Statistics.mean(A.Observations,dims=2),Statistics.mean(A.TradeState,dims=2),Statistics.mean(A.TradeParameters,dims=2))
+    return ValuationInputs(Statistics.mean(A.t),Statistics.mean(A.Maturity),lmean(A.Observations),lmean(A.TradeState),lmean(A.TradeParameters),lmean(A.Accrual))
 end
 end

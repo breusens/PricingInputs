@@ -2,14 +2,23 @@ name = "PricingInputs"
 uuid = "6a964a4a-579a-4924-84e4-b5c869a79900"
 authors = ["breusens <brent.reusens@gmail.com> and contributors"]
 version = "0.1.0"
+
+
 [deps]
+
+JLD2= "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+FileIO= "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+Instruments = "268ab4ed-6328-4bd8-b1ed-a63d46554def"
 Derivatives = "28531788-b187-4010-a899-5d1f00afbd7f"
 FloatingNumberType= "8dba378f-9910-47f1-b06a-0d0e509a4feb"
 Statistics="10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 MatrixFunctions="2696bb4c-b495-49e1-a13d-55dba26b836f"
-StochasticRounding="3843c9a1-1f18-49ff-9d99-1b4c8a8e97ed"
-VectorStoredArray = "619dcd67-d1cf-444f-8762-d8c7e6d56cc5"
 Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Batcher="702d20c8-3338-4dfe-9cb9-8d587ebe59ee"
+UpdateMarketandTrade= "161ee311-fe1a-46b5-ad4e-2b05a4a7bb1e"
+MarketData= "c83d9cef-a0b6-4d2e-b249-b0e08c324c4c"
+PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
+FloatTracker= "1722352a-da05-4a89-9ace-0f2f7ef630bb"
 
 [compat]
 julia = "1"
